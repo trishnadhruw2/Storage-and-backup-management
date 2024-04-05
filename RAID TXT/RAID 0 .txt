@@ -1,0 +1,38 @@
+NOTE : INPORT OS FROM "centos-7-raid"
+RAID 0 
+-------------------------------------------------------------------------------------------
+* CONFIGURATION..
+
+1 CPU
+1 GB R
+CENT0S 7
+(Attach extra 2 hard disks (20gb) per hard disk) (total 3 hard disk)
+
+
+> lsblk
+> yum install pciutils
+> yum install mdadm
+> mdadm --create --verbose /dev/md0 --level=0 --raid-devices=2 /dev/sdb /dev/sdc
+> dfisk -l 
+> fdisk /dev/md0
+n
+p
+enter
+enter
+w
+> dfisk -l
+> mkfs.ext4 /dev/md0p1
+> dfisk -l 
+> mkdir /mnt/raid0
+> mount /dev/md0p1 /mnt/raid0/
+> df -h
+> lsblk
+------------------------------------------------------------------------------------------
+
+
+
+
+
+
+
+ 

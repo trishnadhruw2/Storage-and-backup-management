@@ -1,0 +1,88 @@
+BEEGFS
+-----------------------------------------------------------------------------------
+VM's
+
+1) manager vm
+2) storage1
+3) storage2
+4) client
+
+su -
+ip a
+vi /etc/selinux/config (selinux=disable)
+setenforce 0
+reboot
+systemctl disable firewalld
+systemctl stop firewalld
+yum install -y vim wget nano && cd /etc/yum.repos.d/ && wget https://www.beegfs.io/release/beegfs_7.4.2/dists/beegfs-rhel8.repo
+vim /etc/hosts
+---------------------
+192.168.139.140 beegfs-mgnt-meta-srv-01
+192.168.139.140 beegfs-storage-01
+192.168.139.140 beegfs-storage-02
+192.168.139.140 beegfs-client-01
+--------------------
+
+### ON MASTER ####
+lsblk
+mkfs.ext4 /dev/nvme0n1
+mkdir /mnt/nvme0n1
+mount /dev/nvme0n1 /mnt/nvme0n1
+yum install beegfs-mgmtd
+chmod root:root /etc/beegfs/connauthfile
+chmod 400 /etc/beegfs/connauthfile
+vim /etc/beegfs/beegfs-mgmtd.conf
+set-->[connAuthfile = /etc/beegfs/connauthfile]
+systemctl start beegfs-mgmtd
+systemctl status beegfs-mgmtd
+yum install -y beegfs-meta
+./beegfs-setup-meta -p /mnt/nvme0n1 -s 1 -m beegfs-mgnt-srv-01 -f
+systemctl start beegfs-meta
+systemctl status beegfs-meta
+
+scp /etc/beegfs/connauthfile beegfs-storage-01:/etc/beegfs/
+scp /etc/beegfs/connauthfile beegfs-storage-02:/etc/beegfs/
+scp /etc/beegfs/connauthfile beegfs-client-01:/etc/beegfs/
+
+### ON STORAGE NODE 1 ###
+
+getenforce 
+systemctl status firewalld
+yum install beegfs-storage
+lsblk
+mkfs.xfs -f /dev/nvme0n2
+mkdir /mnt/raid1
+mount /dev/nvme0n2 /mnt/raid1
+df -h
+vi /etc/beegfs/beegfs-storage.conf
+----------------------------
+#set path on
+connauthfile = /etc/beegfs/connauthfile
+----------------------------
+./beegfs-setup-storage -p /mnt/raid1/ -s -i 301 -m beegfs-mgnt-meta-srv-01
+systemctl start beegfs-storage && systemctl status beegfs-storage
+
+### ON STORAGE NODE 2 ###
+
+getenforce 
+systemctl status firewalld
+yum install beegfs-storage
+lsblk
+mkfs.xfs -f /dev/nvme0n2
+mkdir /mnt/raid1
+mount /dev/nvme0n2 /mnt/raid1
+df -h
+vi /etc/beegfs/beegfs-storage.conf
+----------------------------
+#set path on
+connauthfile = /etc/beegfs/connauthfile
+----------------------------
+./beegfs-setup-storage -p /mnt/raid1/ -s -i 402 -m beegfs-mgnt-meta-srv-01
+systemctl start beegfs-storage && systemctl status beegfs-storage
+
+### ON STORAGE NODE 2 ###
+
+getenforce
+yum install -y kernel-devel beegfs-utils beegfs-client beegfs-mgmtd
+/etc/init.d/beegfs-client rebuild
+./beegfs-setup-client -m beegfs-mgnt-meta-srv

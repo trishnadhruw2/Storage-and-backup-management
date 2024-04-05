@@ -1,0 +1,28 @@
+
+LVM
+---------------------------------------------------------------------
+lsblk
+pvcreate /dev/sdb /dev/sdc
+vgcreate HPCSA /dev/sdb /dev/sdc
+lvcreate -n hpcsa_lab --size 1G HPCSA
+fdisk /dev/mapper/HPCSA-hpcsa_lab
+mkfs.ext4 /dev/mapper/HPCSA-hpcsa_lab
+mkdir lab
+mount /dev/mapper/HPCSA-hpcsa_lab lab
+resize2fs /dev/mapper/HPCSA-hpcsa_lab
+lvcreate -L 1GB -s -n hpcsa_lab_snap /dev/mapper/HPCSA-hpcsa_lab
+lvconvert --merge /dev/mapper/HPCSA-hpcsa_lab_snap
+lsblk
+vgcreate HPCSA /dev/sdb /dev/sdclsblk
+vgs
+vgextend HPCSA /dev/sdd
+vgs
+lvconvert --merge /dev/mapper/HPCSA-hpcsa_lab
+lvconvert --merge /dev/mapper/HPCSA-hpcsa_lab
+lvconvert --merge /dev/mapper/HPCSA-hpcsa_lab_snap
+----------------------------------------------------------------------
+FINAL OUTPUT 
+"Merging of volume HPCSA/hpcsa_lab_snap started.
+HPCSA/hpcsa_lab: Merged: 100.00%
+
+----------------------------------------------------------------------

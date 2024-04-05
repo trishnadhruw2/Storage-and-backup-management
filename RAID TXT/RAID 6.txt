@@ -1,0 +1,64 @@
+------------------------------------------------------------------------------------------
+RAID 1
+
+1 CPU
+1 GB R
+CENT0S 7
+(Attach extra 4 hard disks (20gb) per hard disk)  (total 5 hard disk)
+
+------------------------------------------------------------------------------------------
+
+*CONFIGURATION*
+
+
+> lsblk
+> yum install pciutils
+> yum install mdadm
+> mdadm --create --verbose /dev/md0 --level=6 --raid-devices=4 /dev/sdb /dev/sdc /dev/sdd /dev/sde
+> dfisk -l 
+> fdisk /dev/md0
+n
+p
+enter
+enter
+w
+> dfisk -l
+> mkfs.ext4 /dev/md0p1
+> dfisk -l 
+> mkdir /mnt/raid6
+> mount /dev/md0p1 /mnt/raid6/
+> df -h
+> cd /dev/raid6
+> vi file1.txt (HELLO CDAC)
+
+TASK: REMOVE HARD DISK and start VM....
+
+> mount /dev/md0p1 /mnt/raid6
+> lsblk
+> cd /mnt/raid6
+> mdadm --detail /dev/md0
+> lsblk
+
+> halt 
+
+(NOTE: NOW ADD NEW HARD DISK ON VM AND START VM)
+
+> mdadm /dev/md0 --add /dev/sdb
+> lsblk
+> blkid   [ copy id ]
+> yum install vim
+> vim /etc/fstab
+add-->[ UUID=<PASTER COPY ID> /mnt/raid1 ext4 defaults 0 0 ]
+> reboot
+> lsblk
+> mount -a
+> df -h
+
+**TO SPARE**
+
+mdadm --create --verbose /dev/md0 --raid-devices=4 /dev/sdc /dev/sdd -spare-devices=1 /dev/sde
+
+(if any hard disk fails then spare device will be used..)
+> lsblk
+> df -h
+------------------------------------------------------------------------------------------

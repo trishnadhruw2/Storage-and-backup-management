@@ -1,0 +1,82 @@
+######LUSTRE#######
+VM'S
+1) MDS-MGS
+2)OSS1
+3)OSS2
+4)CLIENT
+
+#### ON ALL VM'S#####
+
+*Create four VMs from the Centos-8 Image
+*Attach an additional HDD to OSS-1, OSS-2, and MGS-MDS VMs.
+
+yum install nano && systemctl stop firewalld && systemctl disable firewalld
+vi /etc/selinux/config (seliinux=disabled)
+setenforce 0
+reboot all machines
+
+vi /etc/yum.repos.d/lustre.repo
+--------------------------------
+[lustre-server]
+name=lustre-server
+baseurl=https://downloads.whamcloud.com/public/lustre/latest-release/el8.9/server
+gpgcheck=0
+[lustre-client]
+name=lustre-client
+baseurl=https://downloads.whamcloud.com/public/lustre/latest-release/el8.9/client
+gpgcheck=0
+[e2fsprogs-wc]
+name=e2fsprogs-wc
+baseurl=https://downloads.whamcloud.com/public/e2fsprogs/latest/el8
+gpgcheck=0
+----------------------------------
+yum update && yum upgrade -y e2fsprogs
+yum install -y lustre-tests
+
+vi /etc/modprobe.d/lnet.conf
+-------------------------------
+options lnet networks="tcp0(ens160)"  --> (replace ens33 with your interface name)
+-----------------------------------
+modprobe lustre
+lsmod | grep lustre
+modprobe lnet
+lsmod | grep lnet
+lctl network up
+
+lctl ping 192.168.139.140@tcp0 (oss1)
+lctl ping 192.168.139.141@tcp0 (oss2)
+lctl ping 192.168.139.142@tcp0 (client)
+
+* Reboot all VMs after configuration.
+
+#### ON MDS-MGS VM ####
+
+fdisk /dev/nvme0n2
+mkfs.ext4 /dev/nvme0n2p1
+mkfs.lustre --reformat --fsname=lustrefs --mgs --mdt --index=0 /dev/nvme0n2p1
+mkdir /mnt/mdt
+mount -t lustre /dev/nvme0n2p1 /mnt/mdt/
+
+#### OSS-OST VM-1 ###
+
+mkfs.ext4 /dev/nvme0n2
+mkfs.lustre --reformat --ost --fsname=lustrefs --mgsnode=192.168.1.30<MASTER-IP>@tcp --index=0 /dev/nvme0n2
+mkdir /ostoss_mount0
+mount -t lustre /dev/nvme0n2 /ostoss_mount0
+
+#### OSS-OST VM-2 ####
+
+mkfs.ext4 /dev/nvme0n2
+mkfs.lustre --reformat --ost --fsname=lustrefs --mgsnode=192.168.1.30<MASTER-IP>@tcp --index=1 /dev/nvme0n2
+mkdir /ostoss_mount0
+mount -t lustre /dev/nvme0n2 /ostoss_mount0
+
+### Client VMs ###
+
+lctl ping 192.168.1.30<SERVER-IP>@tcp0
+mkdir /mnt/lustre
+mount -t lustre 192.168.1.30<SERVER-IP>@tcp0:/lustrefs /mnt/lustre
+cd /mnt/lustre
+dd if=/dev/zero of=filename bs=2G count=1
+
+
